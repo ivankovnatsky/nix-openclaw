@@ -1,4 +1,4 @@
-# Generated from upstream OpenClaw schema at rev b10f438221ef37e69592f5eb61e0e3875bd0440c. DO NOT EDIT.
+# Generated from upstream OpenClaw schema at rev 965ce31d8472912d9eeeea3be87ce8b7d5ef5ed0. DO NOT EDIT.
 # Generator: nix/scripts/generate-config-options.ts
 { lib }:
 let
@@ -8224,6 +8224,10 @@ in
           };
           topics = lib.mkOption {
             type = t.nullOr (t.attrsOf (t.submodule { options = {
+            agentId = lib.mkOption {
+              type = t.nullOr (t.str);
+              default = null;
+            };
             allowFrom = lib.mkOption {
               type = t.nullOr (t.listOf (t.oneOf [ (t.str) (t.number) ]));
               default = null;
@@ -8370,6 +8374,10 @@ in
           };
           topics = lib.mkOption {
             type = t.nullOr (t.attrsOf (t.submodule { options = {
+            agentId = lib.mkOption {
+              type = t.nullOr (t.str);
+              default = null;
+            };
             allowFrom = lib.mkOption {
               type = t.nullOr (t.listOf (t.oneOf [ (t.str) (t.number) ]));
               default = null;
@@ -8773,6 +8781,10 @@ in
         };
         topics = lib.mkOption {
           type = t.nullOr (t.attrsOf (t.submodule { options = {
+          agentId = lib.mkOption {
+            type = t.nullOr (t.str);
+            default = null;
+          };
           allowFrom = lib.mkOption {
             type = t.nullOr (t.listOf (t.oneOf [ (t.str) (t.number) ]));
             default = null;
@@ -8919,6 +8931,10 @@ in
         };
         topics = lib.mkOption {
           type = t.nullOr (t.attrsOf (t.submodule { options = {
+          agentId = lib.mkOption {
+            type = t.nullOr (t.str);
+            default = null;
+          };
           allowFrom = lib.mkOption {
             type = t.nullOr (t.listOf (t.oneOf [ (t.str) (t.number) ]));
             default = null;
