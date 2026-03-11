@@ -1,4 +1,4 @@
-# Generated from upstream OpenClaw schema at rev 87876a3e36dbf067245ee727beaed7829a5b00c1. DO NOT EDIT.
+# Generated from upstream OpenClaw schema at rev 8618a711ff59efc7ae0cb3636ee824c02cd29796. DO NOT EDIT.
 # Generator: nix/scripts/generate-config-options.ts
 { lib }:
 let
@@ -3974,8 +3974,16 @@ in
                 type = t.nullOr (t.str);
                 default = null;
               };
+              instructions = lib.mkOption {
+                type = t.nullOr (t.str);
+                default = null;
+              };
               model = lib.mkOption {
                 type = t.nullOr (t.str);
+                default = null;
+              };
+              speed = lib.mkOption {
+                type = t.nullOr (t.number);
                 default = null;
               };
               voice = lib.mkOption {
@@ -4965,8 +4973,16 @@ in
               type = t.nullOr (t.str);
               default = null;
             };
+            instructions = lib.mkOption {
+              type = t.nullOr (t.str);
+              default = null;
+            };
             model = lib.mkOption {
               type = t.nullOr (t.str);
+              default = null;
+            };
+            speed = lib.mkOption {
+              type = t.nullOr (t.number);
               default = null;
             };
             voice = lib.mkOption {
@@ -11720,8 +11736,16 @@ in
           type = t.nullOr (t.str);
           default = null;
         };
+        instructions = lib.mkOption {
+          type = t.nullOr (t.str);
+          default = null;
+        };
         model = lib.mkOption {
           type = t.nullOr (t.str);
+          default = null;
+        };
+        speed = lib.mkOption {
+          type = t.nullOr (t.number);
           default = null;
         };
         voice = lib.mkOption {
