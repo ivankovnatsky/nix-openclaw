@@ -310,25 +310,56 @@ in
           ++ plugins.pluginSkillsExternal
           ++ plugins.pluginConfigExternal
         );
+        firstInstance = lib.head (lib.attrValues enabledInstances);
+        manifestPath = "${firstInstance.stateDir}/.nix-external-files";
+        targetPaths = map (e: e.target) allExternal;
+        manifestFile = pkgs.writeText "openclaw-external-manifest" (lib.concatStringsSep "\n" targetPaths);
+        rm = lib.getExe' pkgs.coreutils "rm";
+        mkdir = lib.getExe' pkgs.coreutils "mkdir";
+        ln = lib.getExe' pkgs.coreutils "ln";
+        dirname = lib.getExe' pkgs.coreutils "dirname";
         mkLink = entry:
           if entry ? text then
             let
               file = pkgs.writeText (builtins.baseNameOf entry.target) entry.text;
             in
             ''
-              run --quiet ${lib.getExe' pkgs.coreutils "mkdir"} -p "$(${lib.getExe' pkgs.coreutils "dirname"} "${entry.target}")"
-              run --quiet ${lib.getExe' pkgs.coreutils "ln"} -sfn ${file} "${entry.target}"
+              run --quiet ${mkdir} -p "$(${dirname} "${entry.target}")"
+              run --quiet ${rm} -rf "${entry.target}"
+              run --quiet ${ln} -sfn ${file} "${entry.target}"
             ''
           else
             ''
-              run --quiet ${lib.getExe' pkgs.coreutils "mkdir"} -p "$(${lib.getExe' pkgs.coreutils "dirname"} "${entry.target}")"
-              run --quiet ${lib.getExe' pkgs.coreutils "ln"} -sfn ${entry.source} "${entry.target}"
+              run --quiet ${mkdir} -p "$(${dirname} "${entry.target}")"
+              run --quiet ${rm} -rf "${entry.target}"
+              run --quiet ${ln} -sfn ${entry.source} "${entry.target}"
             '';
       in
       lib.mkIf (allExternal != [ ]) (
         lib.hm.dag.entryAfter [ "openclawDirs" ] ''
           set -euo pipefail
+
+          # Remove stale external files from previous activation
+          if [ -f "${manifestPath}" ]; then
+            while IFS= read -r old; do
+              [ -z "$old" ] && continue
+              found=0
+              for cur in ${lib.concatStringsSep " " (map (p: ''"${p}"'') targetPaths)}; do
+                if [ "$old" = "$cur" ]; then
+                  found=1
+                  break
+                fi
+              done
+              if [ "$found" = "0" ] && { [ -e "$old" ] || [ -L "$old" ]; }; then
+                run --quiet ${rm} -rf "$old"
+              fi
+            done < "${manifestPath}"
+          fi
+
           ${lib.concatStringsSep "\n" (map mkLink allExternal)}
+
+          # Write current manifest
+          run --quiet ${ln} -sfn ${manifestFile} "${manifestPath}"
         ''
       );
 
