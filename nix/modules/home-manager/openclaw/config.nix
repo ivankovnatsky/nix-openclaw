@@ -171,11 +171,15 @@ let
       package = gatewayPackage;
     in
     {
-      homeFile = {
+      homeFile = if openclawLib.isUnderHome inst.configPath then {
         name = openclawLib.toRelative inst.configPath;
         value = {
           text = configJson;
         };
+      } else null;
+      externalConfigFile = if openclawLib.isUnderHome inst.configPath then null else {
+        target = inst.configPath;
+        text = configJson;
       };
       configFile = configFile;
       configPath = inst.configPath;
@@ -266,7 +270,7 @@ in
     );
 
     home.file = lib.mkMerge [
-      (lib.listToAttrs (map (item: item.homeFile) instanceConfigs))
+      (lib.listToAttrs (lib.filter (item: item != null) (map (item: item.homeFile) instanceConfigs)))
       (lib.optionalAttrs (pkgs.stdenv.hostPlatform.isDarwin && appPackage != null && cfg.installApp) {
         "Applications/OpenClaw.app" = {
           source = "${appPackage}/Applications/OpenClaw.app";
@@ -304,8 +308,10 @@ in
 
     home.activation.openclawExternalFiles =
       let
+        externalConfigFiles = lib.filter (item: item != null) (map (item: item.externalConfigFile) instanceConfigs);
         allExternal = lib.unique (
-          files.skillFilesExternal
+          externalConfigFiles
+          ++ files.skillFilesExternal
           ++ files.documentsFilesExternal
           ++ plugins.pluginSkillsExternal
           ++ plugins.pluginConfigExternal
