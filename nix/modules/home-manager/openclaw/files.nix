@@ -55,7 +55,8 @@ let
       entriesForInstance =
         instName: inst:
         let
-          base = "${toRelative (resolvePath inst.workspaceDir)}/skills";
+          resolved = resolvePath inst.workspaceDir;
+          base = "${toRelative resolved}/skills";
           entryFor =
             skill:
             let
@@ -99,9 +100,58 @@ let
             }) p.skills;
           pluginsForInstance = plugins.resolvedPluginsByInstance.${instName} or [ ];
         in
-        (map entryFor cfg.skills) ++ (lib.flatten (map pluginEntriesFor pluginsForInstance));
+        if openclawLib.isUnderHome resolved then
+          (map entryFor cfg.skills) ++ (lib.flatten (map pluginEntriesFor pluginsForInstance))
+        else
+          [ ];
     in
     lib.listToAttrs (lib.flatten (lib.mapAttrsToList entriesForInstance enabledInstances));
+
+  skillFilesExternal =
+    let
+      entriesForInstance =
+        instName: inst:
+        let
+          resolved = resolvePath inst.workspaceDir;
+          base = "${resolved}/skills";
+          entryFor =
+            skill:
+            let
+              mode = skill.mode or "symlink";
+              source = if skill ? source && skill.source != null then resolvePath skill.source else null;
+            in
+            if mode == "inline" then
+              {
+                target = "${base}/${skill.name}/SKILL.md";
+                text = renderSkill skill;
+              }
+            else if source == null then
+              throw "skill ${skill.name} has no source defined"
+            else
+              {
+                source = if mode == "copy" then
+                  builtins.path {
+                    name = "openclaw-skill-${skill.name}";
+                    path = source;
+                  }
+                else
+                  source;
+                target = "${base}/${skill.name}";
+              };
+          pluginEntriesFor =
+            p:
+            map (skillPath: {
+              source = skillPath;
+              target = "${base}/${builtins.baseNameOf skillPath}";
+            }) p.skills;
+          pluginsForInstance = plugins.resolvedPluginsByInstance.${instName} or [ ];
+        in
+        if openclawLib.isUnderHome resolved then
+          [ ]
+        else
+          (map entryFor cfg.skills) ++ (lib.flatten (map pluginEntriesFor pluginsForInstance));
+    in
+    lib.flatten (lib.mapAttrsToList entriesForInstance enabledInstances);
 
   documentsRequiredFiles = [
     "AGENTS.md"
@@ -223,6 +273,7 @@ let
   documentsFiles =
     if documentsEnabled then
       let
+        homeDirs = lib.filter openclawLib.isUnderHome instanceWorkspaceDirs;
         mkDocFiles =
           dir:
           let
@@ -235,9 +286,24 @@ let
           in
           lib.listToAttrs (map mkDoc documentsFileNames);
       in
-      lib.mkMerge (map mkDocFiles instanceWorkspaceDirs)
+      lib.mkMerge (map mkDocFiles homeDirs)
     else
       { };
+
+  documentsFilesExternal =
+    if documentsEnabled then
+      let
+        extDirs = lib.filter (d: !openclawLib.isUnderHome d) instanceWorkspaceDirs;
+        mkDocEntries =
+          dir:
+          map (name: {
+            source = if name == "TOOLS.md" then toolsWithReport else cfg.documents + "/${name}";
+            target = dir + "/${name}";
+          }) documentsFileNames;
+      in
+      lib.flatten (map mkDocEntries extDirs)
+    else
+      [ ];
 
 in
 {
@@ -246,7 +312,9 @@ in
     documentsAssertions
     documentsGuard
     documentsFiles
+    documentsFilesExternal
     skillAssertions
     skillFiles
+    skillFilesExternal
     ;
 }

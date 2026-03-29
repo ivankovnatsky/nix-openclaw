@@ -135,7 +135,8 @@ let
       entriesForInstance =
         instName: inst:
         let
-          base = "${toRelative (resolvePath inst.workspaceDir)}/skills";
+          resolved = resolvePath inst.workspaceDir;
+          base = "${toRelative resolved}/skills";
           skillEntriesFor =
             p:
             map (skillPath: {
@@ -147,9 +148,34 @@ let
             }) p.skills;
           plugins = resolvedPluginsByInstance.${instName} or [ ];
         in
-        lib.flatten (map skillEntriesFor plugins);
+        if openclawLib.isUnderHome resolved then
+          lib.flatten (map skillEntriesFor plugins)
+        else
+          [ ];
     in
     lib.listToAttrs (lib.flatten (lib.mapAttrsToList entriesForInstance enabledInstances));
+
+  pluginSkillsExternal =
+    let
+      entriesForInstance =
+        instName: inst:
+        let
+          resolved = resolvePath inst.workspaceDir;
+          base = "${resolved}/skills";
+          skillEntriesFor =
+            p:
+            map (skillPath: {
+              source = skillPath;
+              target = "${base}/${builtins.baseNameOf skillPath}";
+            }) p.skills;
+          plugins = resolvedPluginsByInstance.${instName} or [ ];
+        in
+        if openclawLib.isUnderHome resolved then
+          [ ]
+        else
+          lib.flatten (map skillEntriesFor plugins);
+    in
+    lib.flatten (lib.mapAttrsToList entriesForInstance enabledInstances);
 
   pluginConfigFiles =
     let
@@ -162,6 +188,7 @@ let
             let
               cfg = p.config.settings or { };
               dir = if (p.needs.stateDirs or [ ]) == [ ] then null else lib.head (p.needs.stateDirs or [ ]);
+              resolved = if dir != null then resolvePath ("~/" + dir + "/config.json") else null;
             in
             if cfg == { } then
               [ ]
@@ -169,21 +196,54 @@ let
               (
                 if dir == null then
                   throw "plugin ${p.name} provides settings but no stateDirs are defined"
-                else
+                else if openclawLib.isUnderHome resolved then
                   [
                     {
-                      name = toRelative (resolvePath ("~/" + dir + "/config.json"));
+                      name = toRelative resolved;
                       value = {
                         text = builtins.toJSON cfg;
                       };
                     }
                   ]
+                else
+                  [ ]
               );
         in
         lib.flatten (map mkEntries plugins);
       entries = lib.flatten (lib.mapAttrsToList entryFor enabledInstances);
     in
     lib.listToAttrs entries;
+
+  pluginConfigExternal =
+    let
+      entryFor =
+        instName: inst:
+        let
+          plugins = resolvedPluginsByInstance.${instName} or [ ];
+          mkEntries =
+            p:
+            let
+              cfg = p.config.settings or { };
+              dir = if (p.needs.stateDirs or [ ]) == [ ] then null else lib.head (p.needs.stateDirs or [ ]);
+              resolved = if dir != null then resolvePath ("~/" + dir + "/config.json") else null;
+            in
+            if cfg == { } then
+              [ ]
+            else if dir == null then
+              throw "plugin ${p.name} provides settings but no stateDirs are defined"
+            else if openclawLib.isUnderHome resolved then
+              [ ]
+            else
+              [
+                {
+                  target = resolved;
+                  text = builtins.toJSON cfg;
+                }
+              ];
+        in
+        lib.flatten (map mkEntries plugins);
+    in
+    lib.flatten (lib.mapAttrsToList entryFor enabledInstances);
 
   pluginSkillAssertions =
     let
@@ -242,7 +302,9 @@ in
     pluginEnvAllFor
     pluginAssertions
     pluginSkillsFiles
+    pluginSkillsExternal
     pluginConfigFiles
+    pluginConfigExternal
     pluginSkillAssertions
     pluginGuards
     ;

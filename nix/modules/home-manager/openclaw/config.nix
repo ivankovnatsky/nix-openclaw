@@ -302,6 +302,36 @@ in
       }
     '';
 
+    home.activation.openclawExternalFiles =
+      let
+        allExternal = lib.unique (
+          files.skillFilesExternal
+          ++ files.documentsFilesExternal
+          ++ plugins.pluginSkillsExternal
+          ++ plugins.pluginConfigExternal
+        );
+        mkLink = entry:
+          if entry ? text then
+            let
+              file = pkgs.writeText (builtins.baseNameOf entry.target) entry.text;
+            in
+            ''
+              run --quiet ${lib.getExe' pkgs.coreutils "mkdir"} -p "$(${lib.getExe' pkgs.coreutils "dirname"} "${entry.target}")"
+              run --quiet ${lib.getExe' pkgs.coreutils "ln"} -sfn ${file} "${entry.target}"
+            ''
+          else
+            ''
+              run --quiet ${lib.getExe' pkgs.coreutils "mkdir"} -p "$(${lib.getExe' pkgs.coreutils "dirname"} "${entry.target}")"
+              run --quiet ${lib.getExe' pkgs.coreutils "ln"} -sfn ${entry.source} "${entry.target}"
+            '';
+      in
+      lib.mkIf (allExternal != [ ]) (
+        lib.hm.dag.entryAfter [ "openclawDirs" ] ''
+          set -euo pipefail
+          ${lib.concatStringsSep "\n" (map mkLink allExternal)}
+        ''
+      );
+
     home.activation.openclawConfigFiles = lib.hm.dag.entryAfter [ "openclawDirs" ] ''
       ${lib.concatStringsSep "\n" (
         map (

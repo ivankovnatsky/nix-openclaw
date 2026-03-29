@@ -56,6 +56,8 @@ let
 
   toRelative = p: if lib.hasPrefix "${homeDir}/" p then lib.removePrefix "${homeDir}/" p else p;
 
+  isUnderHome = p: lib.hasPrefix "${homeDir}/" p;
+
 in
 {
   inherit
@@ -72,5 +74,6 @@ in
     effectivePlugins
     resolvePath
     toRelative
+    isUnderHome
     ;
 }
