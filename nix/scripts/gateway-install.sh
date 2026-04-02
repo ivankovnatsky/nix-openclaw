@@ -130,6 +130,10 @@ if [ -n "$hasown_src" ]; then
   fi
 fi
 
+# Remove dangling .bin/node-which symlinks left by cmake-js and node-llama-cpp
+# after pnpm prune --prod strips the `which` dev dependency.
+find "$out/lib/openclaw/node_modules" -type l ! -exec test -e {} \; -delete 2>/dev/null || true
+
 log_step "validate node_modules symlinks" check_no_broken_symlinks "$out/lib/openclaw/node_modules"
 
 bash -e -c '. "$STDENV_SETUP"; makeWrapper "$NODE_BIN" "$out/bin/openclaw" --add-flags "$out/lib/openclaw/dist/index.js" --set-default OPENCLAW_NIX_MODE "1"'
