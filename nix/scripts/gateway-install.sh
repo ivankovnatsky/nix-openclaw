@@ -57,6 +57,11 @@ if [ -d "$out/lib/openclaw/extensions" ] && [ -d "$out/lib/openclaw/dist/extensi
     if [ -d "$dist_ext" ] && [ ! -f "$dist_ext/openclaw.plugin.json" ]; then
       cp "$manifest" "$dist_ext/openclaw.plugin.json"
     fi
+    # v2026.4.1+ reads package.json from dist/extensions/ for channel metadata
+    src_pkg="$out/lib/openclaw/extensions/$name/package.json"
+    if [ -f "$src_pkg" ] && [ ! -f "$dist_ext/package.json" ]; then
+      cp "$src_pkg" "$dist_ext/package.json"
+    fi
   done
 fi
 
