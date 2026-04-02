@@ -59,10 +59,4 @@
     description = "Send/read iMessages";
     linux = false;
   };
-
-  perplexity = {
-    tool = "perplexity";
-    description = "Perplexity web search";
-    linux = true;
-  };
 }
